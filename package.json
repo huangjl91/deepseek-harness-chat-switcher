@@ -1,0 +1,14 @@
+{
+  "name": "deepseek-harness-chat-switcher",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Unofficial work/chat switcher and separate login browser for DeepSeek Harness on Windows.",
+  "type": "module",
+  "license": "MIT",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "test": "node --test",
+    "patch": "node scripts/patch.mjs",
+    "restore": "node scripts/restore.mjs"
+  }
+}

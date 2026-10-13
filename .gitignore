@@ -1,0 +1,16 @@
+node_modules/
+*.asar
+*.exe
+*.dll
+*.zip
+*.log
+*.png
+*.backup
+*.pending
+*chat-switcher.json
+.env
+.env.*
+.dsh/
+coverage/
+work/
+dist/

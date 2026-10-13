@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'none'">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>工作与聊天切换</title>
+<style>
+:root{color-scheme:light dark;font-family:"Segoe UI","Microsoft YaHei",sans-serif}
+*{box-sizing:border-box}body{margin:0;height:32px;display:flex;align-items:center;justify-content:center;gap:7px;background:#f9fafb;color:#64748b;overflow:hidden;-webkit-app-region:no-drag}
+.tabs{display:flex;padding:2px;gap:2px;border-radius:8px;background:#e9edf3}
+button{border:0;background:transparent;color:#596273;font:12px "Segoe UI","Microsoft YaHei",sans-serif;border-radius:6px;height:26px;padding:0 12px;cursor:pointer;white-space:nowrap;-webkit-app-region:no-drag}
+button[aria-pressed=true]{background:#fff;color:#2456e6;box-shadow:0 1px 3px #0001}
+button:hover{background:#dde5fa}button:focus-visible{outline:2px solid #4d6bfe;outline-offset:-2px}
+.icon{font-size:18px;padding:0 6px;min-width:26px}#hint{font-size:11px;white-space:nowrap}[hidden]{display:none!important}
+@media(prefers-color-scheme:dark){body{background:#1b1b1c;color:#a2a8b4}.tabs{background:#2d2e33}button{color:#b8beca}button[aria-pressed=true]{background:#444650;color:#a7bdff}button:hover{background:#383e50}}
+@media(max-width:340px){#hint{display:none}button{padding:0 9px}}
+</style></head><body>
+<div class="tabs" role="group" aria-label="应用模式">
+<button id="work" aria-pressed="true" title="工作模式 · Ctrl+Shift+1">工作</button>
+<button id="chat" aria-pressed="false" title="DeepSeek 官网聊天，不调用 Harness API · Ctrl+Shift+2">聊天</button>
+</div>
+<span id="hint" title="聊天使用 DeepSeek 官网，不调用 Harness API。工作任务需另行停止。">官网 · 不用 API</span>
+<button id="reload" class="icon" title="重新加载聊天页" aria-label="重新加载聊天页" hidden>↻</button>
+<button id="external" class="icon" title="在外部浏览器打开官网（浏览器登录不会同步到内置聊天页）" aria-label="在外部浏览器打开独立的官网页面">↗</button>
+</body></html>
