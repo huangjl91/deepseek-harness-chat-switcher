@@ -1,6 +1,6 @@
 {
   "name": "deepseek-harness-chat-switcher",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "Unofficial work/chat switcher and separate login browser for DeepSeek Harness on Windows.",
   "type": "module",

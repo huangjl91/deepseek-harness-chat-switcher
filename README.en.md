@@ -9,6 +9,7 @@ An unofficial Windows patch that adds work/chat switching to DeepSeek Harness an
 - Work/chat buttons and `Ctrl+Shift+1` / `Ctrl+Shift+2` shortcuts.
 - Embedded [DeepSeek web chat](https://chat.deepseek.com/) without invoking the Harness API.
 - Persistent, separate chat and work-authorization cookies; external browsers remain independent.
+- A hidden chat preload starts 750ms after the visible workspace settles, without changing mode, stealing focus or sending a message.
 - Windows titlebar hit-test fix for actual mouse clicks.
 - Compatibility checks, backup, dry run and checksum-protected restoration.
 
@@ -18,6 +19,7 @@ Switching to chat does not stop active work tasks. The website's limits and term
 
 Only the tested Windows desktop build `0.2.0-rc.2`, commit `04f392c9ddd144fa426da2045178797da6db6c11`, is accepted. See [compatibility.json](compatibility.json).
 Updates can overwrite this patch. The installer rejects unknown builds instead of silently modifying them. macOS/Linux support is not implemented.
+To update this patch, restore it with the original version's tool first, then install the new version.
 
 ## Install
 
@@ -36,6 +38,7 @@ If the application was already manually patched, restore the original backup of 
 
 Chat uses `persist:dsh-web-chat`; work authorization uses `persist:dsh-work-login` and preserves the official PKCE callback and grant handling.
 External-browser login does not synchronize into the embedded views. Session isolation does not bypass server-side authorization expiry, revocation or account rules. An expired work grant still requires official sign-in.
+Preloading contacts the website early and keeps an extra renderer in memory. Background throttling is disabled for chat to finish loading while hidden and avoid resume delays. Website and network latency can still affect readiness.
 
 Manual official work authorization and web-chat login have been tested on Windows. Full Google/Apple identity-provider return flows have not been qualified.
 
