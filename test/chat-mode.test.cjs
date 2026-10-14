@@ -5,11 +5,12 @@ const { EventEmitter } = require('events');
 const assert = require('assert/strict');
 let ids = 0;
 class Contents extends EventEmitter {
-  constructor() { super(); this.id = ++ids; this.mainFrame = {}; this.url = ''; this.closed = false; this.loads = []; this.messages = []; }
+  constructor() { super(); this.id = ++ids; this.mainFrame = {url:'dsh-app://app/'}; this.url = ''; this.closed = false; this.loads = []; this.messages = []; }
   isDestroyed() { return this.closed; }
   getURL() { return this.url; }
   getUserAgent() { return 'Chrome/148 Electron/41 DeepSeek-Harness/0.2'; }
   setUserAgent(value) { this.ua = value; }
+  setBackgroundThrottling(value) { this.throttled = value; }
   setWindowOpenHandler(value) { this.popup = value; }
   async loadURL(url) { this.url = url; this.loads.push(url); }
   async loadFile(file) { this.file = file; }
@@ -27,6 +28,10 @@ class View {
   setBounds(value) { this.bounds = value; this.boundsChanges=(this.boundsChanges||0)+1; }
 }
 const ipcMain = new EventEmitter();
+const handlers = new Map();
+ipcMain.handle = (channel, handler) => handlers.set(channel, handler);
+ipcMain.removeHandler = channel => handlers.delete(channel);
+const plugin = (window, action) => handlers.get('dsh-local-chat:plugin')({sender:window.webContents,senderFrame:window.webContents.mainFrame},action);
 const opened = [];
 const partitions = [];
 const chatCookies = new EventEmitter();
@@ -50,6 +55,11 @@ context.installChatMode(window, () => permitted);
 const toolbar = views[0];
 toolbar.webContents.emit('did-finish-load');
 window.webContents.emit('did-finish-load');
+assert.equal(toolbar.visible,false,'An installed bridge alone must not enable the plugin');
+assert.equal(warmups.size,0);
+assert.throws(()=>handlers.get('dsh-local-chat:plugin')({sender:toolbar.webContents,senderFrame:toolbar.webContents.mainFrame},'activate'),/Rejected/);
+assert.throws(()=>handlers.get('dsh-local-chat:plugin')({sender:window.webContents,senderFrame:{url:'dsh-app://app/'}},'activate'),/Rejected/);
+plugin(window,'activate');
 assert(window.webContents.css.includes('-webkit-app-region: no-drag'), 'Switcher excluded from native titlebar dragging');
 assert.equal(toolbar.visible, true);
 assert.equal(views.length, 1, 'Website waits for workspace startup to settle');
@@ -57,6 +67,11 @@ assert.equal(warmups.size, 1, 'Workspace load schedules one background warmup');
 window.webContents.emit('did-start-navigation',{},'dsh-app://app/',true,true);
 assert.equal(warmups.size,1,'Workspace history changes must not cancel preload');
 const command = action => ipcMain.emit('dsh-local-chat:command', { sender: toolbar.webContents, senderFrame: toolbar.webContents.mainFrame }, action);
+command('menu-toggle');
+assert.equal(toolbar.bounds.height,196,'Dropdown has room for both mode choices');
+assert.equal(toolbar.webContents.messages.at(-1)[1].menuOpen,true);
+command('work');
+assert.equal(toolbar.bounds.height,32,'Selection collapses the native dropdown');
 ipcMain.emit('dsh-local-chat:command', { sender: window.webContents, senderFrame: window.webContents.mainFrame }, 'chat');
 assert.equal(views.length, 1, 'Main/remote renderers cannot use toolbar IPC');
 visible=false;
@@ -89,6 +104,17 @@ assert(cookieFlushes>0,'Login cookies are flushed without clearing storage');
 command('chat');
 assert.equal(views.length, 2, 'Switch preserves the same chat page');
 assert.equal(chat.webContents.loads.length, 1, 'Switch does not reload or request a completion');
+plugin(window,'deactivate');
+assert.equal(toolbar.visible,false);
+assert.equal(chat.visible,false);
+assert.equal(chat.webContents.throttled,true);
+command('chat');
+assert.equal(chat.visible,false,'Disabled plugin ignores toolbar actions');
+plugin(window,'activate');
+assert.equal(chat.webContents.throttled,false);
+assert.equal(chat.visible,false,'Enabling starts in Work');
+command('chat');
+assert.equal(chat.webContents.loads.length,1,'Plugin toggles preserve the website session and renderer');
 window.getContentSize = () => [800, 600];
 window.emit('resize');
 assert.equal(chat.bounds.width, 800);
@@ -115,6 +141,7 @@ window.emit('closed');
 assert.equal(chat.webContents.closed, true);
 assert.equal(toolbar.webContents.closed, true);
 assert.equal(ipcMain.listenerCount('dsh-local-chat:command'), 0);
+assert.equal(handlers.size,0);
 assert.equal(timers.size, 0);
 assert.equal(warmups.size,0);
 assert.equal(chatCookies.listenerCount('changed'),0);
@@ -129,6 +156,7 @@ earlyWindow.isVisible=()=>true;
 earlyWindow.contentView={addChildView(){}};
 context.installChatMode(earlyWindow);
 earlyWindow.webContents.emit('did-finish-load');
+plugin(earlyWindow,'activate');
 const earlyToolbar=views[2];
 assert.equal(warmups.size,1);
 ipcMain.emit('dsh-local-chat:command',{sender:earlyToolbar.webContents,senderFrame:earlyToolbar.webContents.mainFrame},'chat');

@@ -2,62 +2,54 @@
 
 English · [中文](README.md)
 
-An unofficial Windows patch that adds work/chat switching to DeepSeek Harness and opens work authorization in a separate browser session.
+A Windows Harness plugin with a single Work / Chat dropdown, icons, descriptions and a selected-mode checkmark.
 
-## Features
+It uses the official Cordis plugin lifecycle and can be enabled or disabled in the sidebar Plugins page. **A companion desktop bridge modifying `app.asar` is required** for a persistent embedded website and separate login sessions. Installing only the plugin package is insufficient. This community repository distributes source, never the original or modified application archive.
 
-- Work/chat buttons and `Ctrl+Shift+1` / `Ctrl+Shift+2` shortcuts.
-- Embedded [DeepSeek web chat](https://chat.deepseek.com/) without invoking the Harness API.
-- Persistent, separate chat and work-authorization cookies; external browsers remain independent.
-- A hidden chat preload starts 750ms after the visible workspace settles, without changing mode, stealing focus or sending a message.
-- Windows titlebar hit-test fix for actual mouse clicks.
-- Compatibility checks, backup, dry run and checksum-protected restoration.
+## Features and compatibility
 
-Switching to chat does not stop active work tasks. The website's limits and terms still apply; this feature does not make model processing tokenless.
+- Dropdown mode selection and Ctrl+Shift+1 / Ctrl+Shift+2 shortcuts.
+- Persistent embedded DeepSeek web chat, separate from work authorization and external browsers.
+- Hidden preload 750ms after the visible workspace settles, without stealing focus or sending messages.
+- Disabling the plugin hides the selector, returns to Work and restores chat throttling; enabling retains the chat renderer.
+- Official work PKCE authorization in a separate session, compatibility guards, backup and checksum-protected restoration.
 
-## Compatibility
+Chat does not invoke the Harness API. The website has its own limits; model processing still uses tokens. Switching does not stop active work tasks.
 
-Only the tested Windows desktop build `0.2.0-rc.2`, commit `04f392c9ddd144fa426da2045178797da6db6c11`, is accepted. See [compatibility.json](compatibility.json).
-Updates can overwrite this patch. The installer rejects unknown builds instead of silently modifying them. macOS/Linux support is not implemented.
-To update this patch, restore it with the original version's tool first, then install the new version.
+The desktop bridge accepts only Windows desktop version `0.2.0-rc.2`, commit `04f392c9ddd144fa426da2045178797da6db6c11`. See [compatibility.json](compatibility.json). macOS/Linux are unsupported. App updates may replace the bridge; never restore an old backup over a newer application. Restore the previous project version before upgrading its bridge.
 
 ## Install
 
-Install a compatible Harness build and Node.js 20+. No npm dependencies are needed.
-Download and extract the source, or clone this repository. Exit Harness completely through its system tray before proceeding.
+Use Node.js 20+ and a compatible Harness. No npm dependencies or installation scripts are needed. Extract or clone the source and keep that directory, since local plugin installation uses a link. Exit Harness completely from the system tray, then run in the source directory:
 
 ```powershell
 node scripts/patch.mjs --app-dir "D:\Apps\DeepSeek Harness" --dry-run
 node scripts/patch.mjs --app-dir "D:\Apps\DeepSeek Harness"
+$pluginDirectory = (Get-Location).Path.Replace('\', '/')
+& "D:\Apps\DeepSeek Harness\resources\runtime\cli\bin\dsh.cmd" plugin --profile desktop add "link:$pluginDirectory"
 ```
 
-Replace the example path. Dry run makes no changes. Installation creates a backup and a checksum manifest beside `resources/app.asar`; never publish these files.
-If the application was already manually patched, restore the original backup of the same supported build first. Do not restore an old backup over an updated application.
+Replace the application path. A configured `dsh` command can also register the package. Dry run makes no changes. Installation stores `app.asar.chat-switcher.backup` and `app.asar.chat-switcher.json` beside the archive. Never publish these files. Previously patched installations must first restore the original archive of the same supported build.
 
-## Login behavior
+Start Harness. Use the top Work dropdown to select Chat. Manage the switch under **sidebar Plugins → Installed → deepseek-harness-chat-switcher**. The Settings plugin list is mainly informational.
 
-Chat uses `persist:dsh-web-chat`; work authorization uses `persist:dsh-work-login` and preserves the official PKCE callback and grant handling.
-External-browser login does not synchronize into the embedded views. Session isolation does not bypass server-side authorization expiry, revocation or account rules. An expired work grant still requires official sign-in.
-Preloading contacts the website early and keeps an extra renderer in memory. Background throttling is disabled for chat to finish loading while hidden and avoid resume delays. Website and network latency can still affect readiness.
+The bundle patch inserts a `chat-modes` Loader entry; its client activates the desktop presentation and disposes it when disabled. The bridge is exposed only to the trusted main workspace. The chat website receives neither Electron APIs nor the Harness preload.
 
-Manual official work authorization and web-chat login have been tested on Windows. Full Google/Apple identity-provider return flows have not been qualified.
+## Login and performance
 
-## Restore and test
+Chat uses `persist:dsh-web-chat`; work authorization uses `persist:dsh-work-login` and the existing official grant handling. External-browser login does not synchronize. Isolation cannot bypass server-side expiry or revocation.
 
-After fully exiting the application:
+Preload contacts the website early and uses an additional renderer. Background throttling is disabled while the plugin is enabled and restored when disabled. Website/network latency can still affect readiness. Plugin toggles retain cookies and work data. Full Google/Apple identity-provider return flows have not been qualified.
+
+## Remove, restore and test
+
+To hide the feature, disable it in Plugins. To fully remove it, uninstall the package there, exit Harness, then restore the bridge:
 
 ```powershell
 node scripts/restore.mjs --app-dir "D:\Apps\DeepSeek Harness"
 npm test
 ```
 
-Restore refuses to overwrite a subsequent application update or use a damaged backup. Account and work data are not deleted.
+Restoration checks both archives and refuses to overwrite subsequent app updates. It does not delete account or work data. Tests cover archive integrity, backup/restore guards, plugin registration/lifecycle, IPC origins, dropdown layout, session isolation, authorization callback scope, preload and keyboard switching. Tests do not authenticate users or send model requests.
 
-Tests cover archive integrity, compatibility guards, backup/restoration, changed-build protection, cookie isolation, authorization callback scope and view lifecycle. No tests authenticate a user or send model requests.
-
-The repository contains only patch source, not the original application, patched binaries, logos, cookies, credentials or user logs.
-
-## License
-
-[MIT](LICENSE). See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for upstream attribution.
-Please redact account information, tokens, authorization URLs and logs from issues. See [SECURITY.md](SECURITY.md).
+[MIT](LICENSE). See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and [SECURITY.md](SECURITY.md). Redact credentials, account information, authorization URLs, cookies and logs from issues.

@@ -1,9 +1,10 @@
-import { WebContentsView, ipcMain, session, shell, nativeTheme } from 'electron';
+import { WebContentsView, ipcMain, session, shell } from 'electron';
 import { fileURLToPath } from 'node:url';
 
 const CHAT_URL = 'https://chat.deepseek.com/';
 const COMMAND = 'dsh-local-chat:command';
 const STATE = 'dsh-local-chat:state';
+const PLUGIN = 'dsh-local-chat:plugin';
 
 // The website gets its own persistent session and no Harness preload or API credentials.
 export function installChatMode(window, permitted = () => true) {
@@ -11,7 +12,7 @@ export function installChatMode(window, permitted = () => true) {
     preload: fileURLToPath(new URL('./preload-chat-toolbar.cjs', import.meta.url)),
     nodeIntegration: false, contextIsolation: true, sandbox: true, webSecurity: true
   }});
-  toolbar.setBackgroundColor(nativeTheme.shouldUseDarkColors ? '#1b1b1c' : '#f9fafb');
+  toolbar.setBackgroundColor('#00000000');
   window.contentView.addChildView(toolbar);
   toolbar.setVisible(false);
   let chat;
@@ -20,12 +21,15 @@ export function installChatMode(window, permitted = () => true) {
   let disposed = false;
   let toolbarReady = false;
   let chatNeedsLogin = false;
+  let pluginActive = false;
+  let menuOpen = false;
+  let toolbarCss;
   let warmupTimer;
   const previousLayout = new WeakMap();
   const owned = () => !disposed && !window.isDestroyed();
-  const enabled = () => owned() && permitted() && window.webContents.getURL().startsWith('dsh-app://app/');
+  const enabled = () => owned() && pluginActive && permitted() && window.webContents.getURL().startsWith('dsh-app://app/');
   const publish = () => {
-    if (toolbarReady && !toolbar.webContents.isDestroyed()) toolbar.webContents.send(STATE, { mode, status, chatNeedsLogin });
+    if (toolbarReady && !toolbar.webContents.isDestroyed()) toolbar.webContents.send(STATE, { mode, status, chatNeedsLogin, menuOpen });
   };
   const applyLayout = (view, bounds, visible) => {
     const previous = previousLayout.get(view);
@@ -36,8 +40,9 @@ export function installChatMode(window, permitted = () => true) {
   const layout = () => {
     if (!owned()) return;
     const [width, height] = window.getContentSize();
-    const barWidth = Math.min(440, Math.max(240, width - 210));
-    applyLayout(toolbar, { x: Math.max(60, Math.floor((width - barWidth) / 2)), y: 4, width: barWidth, height: 32 }, enabled());
+    const x = Math.min(170, Math.max(110, Math.floor(width * 0.2)));
+    const barWidth = Math.min(370, width - x - 150);
+    applyLayout(toolbar, { x, y: 4, width: barWidth, height: menuOpen ? 196 : 32 }, enabled());
     if (chat) {
       applyLayout(chat, { x: 0, y: 44, width, height: Math.max(0, height - 44) }, enabled() && mode === 'chat');
     }
@@ -45,13 +50,18 @@ export function installChatMode(window, permitted = () => true) {
   // Windows hit-tests draggable regions from the main renderer even over child
   // views. Exclude the switcher rectangle there so physical clicks reach it.
   const reserveToolbarInput = () => {
+    if (toolbarCss) window.webContents.removeInsertedCSS(toolbarCss).catch(() => {});
+    toolbarCss = undefined;
     if (!enabled()) return;
     window.webContents.insertCSS(`body::after {
       content: ''; position: fixed; top: 4px;
-      left: max(60px, calc((100vw - clamp(240px, calc(100vw - 210px), 440px)) / 2));
-      width: clamp(240px, calc(100vw - 210px), 440px); height: 32px;
+      left: min(170px, max(110px, 20vw));
+      width: min(370px, calc(100vw - min(170px, max(110px, 20vw)) - 150px)); height: 32px;
       z-index: 2147483647; pointer-events: auto; -webkit-app-region: no-drag;
-    }`).catch(() => {});
+    }`).then(key => {
+      if (enabled()) toolbarCss = key;
+      else window.webContents.removeInsertedCSS(key).catch(() => {});
+    }).catch(() => {});
   };
   const external = url => {
     try {
@@ -145,6 +155,7 @@ export function installChatMode(window, permitted = () => true) {
   const switchMode = next => {
     if (!enabled() || !['work', 'chat'].includes(next)) return;
     mode = next;
+    menuOpen = false;
     if (next === 'chat') cancelWarmup();
     if (chat && next === 'work') chat.webContents.session.cookies.flushStore().catch(() => {});
     if (next === 'chat' && !chat) createChat();
@@ -157,11 +168,25 @@ export function installChatMode(window, permitted = () => true) {
   const command = (event, action) => {
     if (!enabled() || event.sender !== toolbar.webContents || event.senderFrame !== toolbar.webContents.mainFrame) return;
     if (action === 'work' || action === 'chat') switchMode(action);
+    else if (action === 'menu-toggle' || action === 'menu-close') {
+      menuOpen = action === 'menu-toggle' ? !menuOpen : false;
+      layout(); publish();
+    }
     else if (action === 'reload' && chat && mode === 'chat') {
       if (allowed(chat.webContents.getURL())) chat.webContents.reload();
       else chat.webContents.loadURL(CHAT_URL).catch(() => {});
     } else if (action === 'external') external(CHAT_URL);
   };
+  const pluginCommand = (event, action) => {
+    if (!owned() || event.sender !== window.webContents || event.senderFrame !== window.webContents.mainFrame || !event.senderFrame.url?.startsWith('dsh-app://app/')) throw new Error('Rejected chat plugin command');
+    if (!['activate', 'deactivate'].includes(action)) throw new Error('Invalid chat plugin action');
+    pluginActive = action === 'activate';
+    if (!pluginActive) { mode = 'work'; menuOpen = false; cancelWarmup(); }
+    if (chat) chat.webContents.setBackgroundThrottling(!pluginActive);
+    reserveToolbarInput(); layout(); publish(); scheduleWarmup();
+    return { active: pluginActive, protocolVersion: 1 };
+  };
+  ipcMain.handle(PLUGIN, pluginCommand);
   ipcMain.on(COMMAND, command);
   const removeWorkKeys = bindKeys(window.webContents);
   bindKeys(toolbar.webContents);
@@ -174,6 +199,7 @@ export function installChatMode(window, permitted = () => true) {
   window.on('leave-full-screen', layout);
   window.on('show', scheduleWarmup);
   window.on('hide', cancelWarmup);
+  window.on('blur', () => { menuOpen = false; layout(); publish(); });
   window.webContents.on('did-finish-load', () => { reserveToolbarInput(); layout(); scheduleWarmup(); });
   const hideForNavigation = (_event, _url, inPlace, mainFrame) => {
     if (mainFrame && !inPlace && owned()) {
@@ -192,6 +218,7 @@ export function installChatMode(window, permitted = () => true) {
     clearInterval(gateTimer);
     cancelWarmup();
     ipcMain.off(COMMAND, command);
+    ipcMain.removeHandler(PLUGIN);
     removeWorkKeys();
     for (const view of [chat, toolbar]) if (view && !view.webContents.isDestroyed()) view.webContents.close({ waitForBeforeUnload: false });
   });

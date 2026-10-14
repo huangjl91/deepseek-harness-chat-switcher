@@ -22,7 +22,7 @@ function fixture(t, overrides = {}) {
   const root = mkdtempSync(join(tmpdir(), 'harness-chat-test-'));
   t.after(() => rmSync(root, { recursive: true, force: true }));
   mkdirSync(join(root, 'resources'));
-  const archive = createArchive({ 'package.json': JSON.stringify({ ...metadata, ...overrides }), 'lib/main.js': main, 'lib/unrelated.js': 'UNCHANGED' });
+  const archive = createArchive({ 'package.json': JSON.stringify({ ...metadata, ...overrides }), 'lib/main.js': main, 'lib/preload-app.cjs': '// fixture preload', 'lib/unrelated.js': 'UNCHANGED' });
   const target = join(root, 'resources', 'app.asar');
   writeFileSync(target, archive);
   return { root, archive, target };

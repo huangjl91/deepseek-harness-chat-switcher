@@ -23,6 +23,7 @@ export function buildPatch(original) {
   replace('\tapp.on("before-quit", (event) => {\n', '\tapp.on("before-quit", (event) => {\n\t\tworkLoginBrowser.dispose();\n');
   main = `${marker}\nimport { installChatMode } from './chat-mode.js';\nimport { createWorkLoginBrowser } from './work-login.js';\n` + main;
   const files = { 'lib/main.js': Buffer.from(main) };
+  files['lib/preload-app.cjs'] = Buffer.concat([archive.read('lib/preload-app.cjs'), Buffer.from('\n'), readFileSync(new URL('../src/preload-chat-plugin.cjs', import.meta.url))]);
   for (const [name, destination] of Object.entries({
     'chat-mode.js': 'lib/chat-mode.js', 'work-login.js': 'lib/work-login.js',
     'preload-chat-toolbar.cjs': 'lib/preload-chat-toolbar.cjs', 'chat-toolbar.html': 'renderer/chat-toolbar.html'

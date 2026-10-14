@@ -1,24 +1,12 @@
 <!doctype html>
 <html lang="zh-CN"><head><meta charset="UTF-8">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'none'">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>工作与聊天切换</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>聊天与工作模式</title>
 <style>
-:root{color-scheme:light dark;font-family:"Segoe UI","Microsoft YaHei",sans-serif}
-*{box-sizing:border-box}body{margin:0;height:32px;display:flex;align-items:center;justify-content:center;gap:7px;background:#f9fafb;color:#64748b;overflow:hidden;-webkit-app-region:no-drag}
-.tabs{display:flex;padding:2px;gap:2px;border-radius:8px;background:#e9edf3}
-button{border:0;background:transparent;color:#596273;font:12px "Segoe UI","Microsoft YaHei",sans-serif;border-radius:6px;height:26px;padding:0 12px;cursor:pointer;white-space:nowrap;-webkit-app-region:no-drag}
-button[aria-pressed=true]{background:#fff;color:#2456e6;box-shadow:0 1px 3px #0001}
-button:hover{background:#dde5fa}button:focus-visible{outline:2px solid #4d6bfe;outline-offset:-2px}
-.icon{font-size:18px;padding:0 6px;min-width:26px}#hint{font-size:11px;white-space:nowrap}[hidden]{display:none!important}
-@media(prefers-color-scheme:dark){body{background:#1b1b1c;color:#a2a8b4}.tabs{background:#2d2e33}button{color:#b8beca}button[aria-pressed=true]{background:#444650;color:#a7bdff}button:hover{background:#383e50}}
-@media(max-width:340px){#hint{display:none}button{padding:0 9px}}
-</style></head><body>
-<div class="tabs" role="group" aria-label="应用模式">
-<button id="work" aria-pressed="true" title="工作模式 · Ctrl+Shift+1">工作</button>
-<button id="chat" aria-pressed="false" title="DeepSeek 官网聊天，不调用 Harness API · Ctrl+Shift+2">聊天</button>
-</div>
-<span id="hint" title="聊天使用 DeepSeek 官网，不调用 Harness API。工作任务需另行停止。">官网 · 不用 API</span>
-<button id="reload" class="icon" title="重新加载聊天页" aria-label="重新加载聊天页" hidden>↻</button>
-<button id="external" class="icon" title="在外部浏览器打开官网（浏览器登录不会同步到内置聊天页）" aria-label="在外部浏览器打开独立的官网页面">↗</button>
-</body></html>
+:root{color-scheme:light dark;font-family:"Segoe UI","Microsoft YaHei",sans-serif;color:#202123}*{box-sizing:border-box}html,body{margin:0;background:transparent;overflow:hidden;-webkit-app-region:no-drag}button{-webkit-app-region:no-drag;font:inherit;cursor:pointer}.bar{display:flex;align-items:center;gap:6px;height:32px;padding-left:3px;background:#f9fafb}#mode-toggle{height:30px;display:flex;align-items:center;gap:10px;padding:0 10px;border:0;border-radius:7px;background:transparent;color:inherit;font-size:14px;font-weight:600}#mode-toggle:hover,#mode-toggle[aria-expanded=true]{background:#eceef1}.arrow{font-size:12px;color:#73777d}#hint{font-size:11px;color:#767a80;white-space:nowrap}.icon{height:28px;width:28px;border:0;border-radius:6px;background:transparent;color:#666;font-size:17px}.icon:hover{background:#eceef1}#mode-menu{position:absolute;top:39px;left:3px;width:252px;padding:6px;border:1px solid #e3e5e8;border-radius:12px;background:#fff;box-shadow:0 8px 26px #0002}.caption{padding:7px 10px;color:#7d8187;font-size:11px}.choice{display:flex;align-items:center;gap:11px;width:100%;padding:10px;border:0;border-radius:7px;background:transparent;text-align:left;color:inherit}.choice:hover,.choice:focus-visible{background:#f1f3f5}.symbol{display:flex;align-items:center;justify-content:center;width:26px;height:26px;flex:none;color:#555}.symbol svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}.words{flex:1}.name{display:block;font-size:13px;font-weight:600}.description{display:block;margin-top:3px;font-size:11px;color:#85898f}.check{font-size:15px;opacity:0}.choice[aria-checked=true] .check{opacity:1}button:focus-visible{outline:2px solid #4d6bfe;outline-offset:-2px}[hidden]{display:none!important}@media(prefers-color-scheme:dark){:root{color:#eef0f2}.bar{background:#1b1b1c}#mode-toggle:hover,#mode-toggle[aria-expanded=true],.icon:hover{background:#303238}#mode-menu{background:#25262b;border-color:#3b3e43}.choice:hover,.choice:focus-visible{background:#36383f}.symbol{color:#ddd}.icon{color:#bbb}}@media(max-width:300px){#hint{display:none}}
+</style></head><body><div class="bar">
+<button id="mode-toggle" aria-haspopup="menu" aria-expanded="false"><span id="mode-label">工作</span><span class="arrow">⌄</span></button><span id="hint"></span>
+<button id="reload" class="icon" title="刷新聊天页" aria-label="刷新聊天页" hidden>↻</button><button id="external" class="icon" title="外部浏览器的登录不会同步到内置聊天页" aria-label="在浏览器打开官网">↗</button></div>
+<div id="mode-menu" role="menu" aria-label="选择聊天或工作区" hidden><div class="caption">选择模式</div>
+<button id="work" class="choice" role="menuitemradio" aria-checked="true"><span class="symbol"><svg viewBox="0 0 24 24"><path d="M8 7V5h8v2M3 8h18v12H3zM3 12h18M10 12v3h4v-3"/></svg></span><span class="words"><span class="name">工作</span><span class="description">处理项目与工作任务</span></span><span class="check">✓</span></button>
+<button id="chat" class="choice" role="menuitemradio" aria-checked="false"><span class="symbol"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 1-8 8H5l-3 3v-8a8 8 0 1 1 18-3Z"/></svg></span><span class="words"><span class="name">聊天</span><span class="description">进入 DeepSeek 聊天区</span></span><span class="check">✓</span></button></div></body></html>

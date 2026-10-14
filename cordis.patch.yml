@@ -1,0 +1,3 @@
+- insert:
+    - id: chat-modes
+      name: deepseek-harness-chat-switcher

@@ -1,19 +1,20 @@
 const { ipcRenderer } = require('electron');
 window.addEventListener('DOMContentLoaded', () => {
-  const work = document.getElementById('work');
-  const chat = document.getElementById('chat');
-  const hint = document.getElementById('hint');
-  const reload = document.getElementById('reload');
-  const external = document.getElementById('external');
-  for (const button of [work, chat, reload, external]) button.addEventListener('click', () => ipcRenderer.send('dsh-local-chat:command', button.id));
-  ipcRenderer.on('dsh-local-chat:state', (_event, state) => {
-    const active = state.mode === 'chat';
-    work.setAttribute('aria-pressed', String(!active));
-    chat.setAttribute('aria-pressed', String(active));
-    reload.hidden = !active;
-    hint.textContent = state.status ? '加载异常' : '官网 · 不用 API';
-    if (!state.status && active && state.chatNeedsLogin) hint.textContent = '请在此页登录';
-    if (state.status.startsWith('正在')) hint.textContent = '加载中…';
-    hint.title = state.status || (active && state.chatNeedsLogin ? '内置聊天、工作授权和外部浏览器分别保存登录。外部浏览器登录不会自动同步到此页。' : '聊天使用 DeepSeek 官网，不调用 Harness API。工作任务需另行停止。');
+  const work=document.getElementById('work'),chat=document.getElementById('chat');
+  const hint=document.getElementById('hint'),reload=document.getElementById('reload'),external=document.getElementById('external');
+  const toggle=document.getElementById('mode-toggle'),menu=document.getElementById('mode-menu'),label=document.getElementById('mode-label');
+  const send=action=>ipcRenderer.send('dsh-local-chat:command',action);
+  for(const button of [work,chat,reload,external])button.addEventListener('click',()=>send(button.id));
+  toggle.addEventListener('click',()=>send('menu-toggle'));
+  window.addEventListener('blur',()=>send('menu-close'));
+  document.addEventListener('keydown',event=>{if(event.key==='Escape'){send('menu-close');toggle.focus()}if(!menu.hidden&&['ArrowDown','ArrowUp'].includes(event.key)){event.preventDefault();(document.activeElement===work?chat:work).focus()}});
+  document.addEventListener('pointerdown',event=>{if(!menu.contains(event.target)&&!toggle.contains(event.target))send('menu-close')});
+  ipcRenderer.on('dsh-local-chat:state',(_event,state)=>{
+    const active=state.mode==='chat';label.textContent=active?'聊天':'工作';
+    work.setAttribute('aria-checked',String(!active));chat.setAttribute('aria-checked',String(active));
+    work.setAttribute('aria-pressed',String(!active));chat.setAttribute('aria-pressed',String(active));
+    toggle.setAttribute('aria-expanded',String(state.menuOpen));menu.hidden=!state.menuOpen;reload.hidden=!active;
+    hint.textContent=state.status?(state.status.startsWith('正在')?'加载中…':'加载异常'):active&&state.chatNeedsLogin?'请在此页登录':active?'官网 · 不用 API':'';
+    hint.title=state.status||'外部浏览器、内置聊天和工作授权分别保存登录。';
   });
 });
