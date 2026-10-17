@@ -22,7 +22,19 @@ test('bundle registers the client and activation follows the plugin lifecycle',a
   await disposed();
   assert.deepEqual(actions,['activate','deactivate']);
   delete context.dshChatModes;
-  assert.throws(()=>module.factory().apply({}),/桌面桥接层/);
+  assert.doesNotThrow(()=>module.factory().apply({effect(fn){fn();}}),'Updates that remove the bridge must leave the workspace usable');
+});
+test('missing, changed and rejected bridge APIs never reject plugin boot or disposal',async()=>{
+  for(const bridge of [undefined,{protocolVersion:99},{protocolVersion:1,activate:()=>{throw Error('old IPC')},deactivate:()=>{throw Error('old IPC')}},{protocolVersion:1,activate:async()=>{throw Error('IPC missing')},deactivate:async()=>{throw Error('IPC missing')}},{protocolVersion:1,activate:()=>new Promise(()=>{}),deactivate:()=>new Promise(()=>{})}]){
+    let module;
+    const context=vm.createContext({window:{__ModuleLoader__:{load(value){module=value;}}},dshChatModes:bridge});
+    vm.runInContext(fs.readFileSync(path.join(root,'lib/client.js'),'utf8'),context);
+    let dispose;
+    assert.doesNotThrow(()=>module.factory().apply({effect(fn){dispose=fn();}}));
+    await Promise.resolve();await Promise.resolve();
+    assert.doesNotThrow(()=>dispose());
+    await Promise.resolve();await Promise.resolve();
+  }
 });
 test('desktop preload exposes only lifecycle calls to the trusted main workspace',async()=>{
   const source=fs.readFileSync(path.join(root,'src/preload-chat-plugin.cjs'),'utf8');

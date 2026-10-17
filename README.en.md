@@ -4,7 +4,7 @@ English · [中文](README.md)
 
 A Windows Harness plugin with a single Work / Chat dropdown, icons, descriptions and a selected-mode checkmark.
 
-It uses the official Cordis plugin lifecycle and can be enabled or disabled in the sidebar Plugins page. **A companion desktop bridge modifying `app.asar` is required** for a persistent embedded website and separate login sessions. Installing only the plugin package is insufficient. This community repository distributes source, never the original or modified application archive.
+It uses the official Cordis plugin lifecycle and can be enabled or disabled in the sidebar Plugins page. **A companion desktop bridge modifying `app.asar` is required for embedded persistent chat.** If an app update removes that bridge, the plugin offers a browser fallback instead of rejecting workspace boot. This community repository distributes source, never the original or modified application archive.
 
 ## Features and compatibility
 
@@ -16,7 +16,7 @@ It uses the official Cordis plugin lifecycle and can be enabled or disabled in t
 
 Chat does not invoke the Harness API. The website has its own limits; model processing still uses tokens. Switching does not stop active work tasks.
 
-The desktop bridge accepts only Windows desktop version `0.2.0-rc.2`, commit `04f392c9ddd144fa426da2045178797da6db6c11`. See [compatibility.json](compatibility.json). macOS/Linux are unsupported. App updates may replace the bridge; never restore an old backup over a newer application. Restore the previous project version before upgrading its bridge.
+The desktop bridge accepts the tested Windows desktop builds `0.2.0-rc.2` and `0.2.1-rc.2`. See [compatibility.json](compatibility.json). macOS/Linux are unsupported. App updates may replace the bridge; never restore an old backup over a newer application. Restore the previous project version before upgrading its bridge.
 
 ## Install
 
@@ -53,3 +53,7 @@ npm test
 Restoration checks both archives and refuses to overwrite subsequent app updates. It does not delete account or work data. Tests cover archive integrity, backup/restore guards, plugin registration/lifecycle, IPC origins, dropdown layout, session isolation, authorization callback scope, preload and keyboard switching. Tests do not authenticate users or send model requests.
 
 [MIT](LICENSE). See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and [SECURITY.md](SECURITY.md). Redact credentials, account information, authorization URLs, cookies and logs from issues.
+
+## Update resilience
+
+Missing, incompatible or rejected bridge APIs no longer fail plugin boot or teardown. A Work / Chat dropdown opens official chat in the system browser when embedded chat is unavailable. Browser cookies remain separate from embedded chat. The native patcher still refuses unknown builds; see the exact version and commit pairs in compatibility.json. Future changes to the module loader or plugin system may still require adaptation; compatibility with every future release is not guaranteed.

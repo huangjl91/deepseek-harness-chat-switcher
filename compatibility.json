@@ -3,5 +3,9 @@
   "version": "0.2.0-rc.2",
   "buildCommit": "04f392c9ddd144fa426da2045178797da6db6c11",
   "platform": "Windows",
-  "patchVersion": "0.2.0"
+  "patchVersion": "0.2.1",
+  "supportedBuilds": [
+    { "version": "0.2.0-rc.2", "buildCommit": "04f392c9ddd144fa426da2045178797da6db6c11" },
+    { "version": "0.2.1-rc.2", "buildCommit": "332895e0f7c9d4dbfb29729f5eb367fa263ff986" }
+  ]
 }

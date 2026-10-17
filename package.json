@@ -1,6 +1,6 @@
 {
   "name": "deepseek-harness-chat-switcher",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "description": "聊天与工作模式：下拉切换聊天区，保留独立登录。Windows 桌面插件，需要配套桌面桥接层。",
   "main": "lib/index.js",

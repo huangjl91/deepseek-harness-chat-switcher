@@ -7,7 +7,8 @@ export const marker = '// deepseek-harness-chat-switcher v' + compatibility.patc
 export function buildPatch(original) {
   const archive = readArchive(original);
   const metadata = JSON.parse(archive.read('package.json'));
-  if (metadata.name !== compatibility.application || metadata.version !== compatibility.version || metadata.dshBuildCommit !== compatibility.buildCommit) throw new Error('Unsupported Harness build. See compatibility.json; the application has not been changed.');
+  const supported = compatibility.supportedBuilds ?? [compatibility];
+  if (metadata.name !== compatibility.application || !supported.some(build => metadata.version === build.version && metadata.dshBuildCommit === build.buildCommit)) throw new Error('Unsupported Harness build. See compatibility.json; the application has not been changed.');
   let main = archive.read('lib/main.js').toString('utf8');
   if (main.includes(marker) || main.includes('installChatMode')) throw new Error('Archive already contains a chat switcher. Restore its original backup first.');
   // Match the tested upstream composition rather than silently editing a new release.
